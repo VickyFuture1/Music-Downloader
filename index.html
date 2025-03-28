@@ -151,10 +151,10 @@
         .header-link {
             background-color: rgba(128, 128, 128, 0.2);
             border: 1px solid rgba(0, 0, 0, 0.3);
-            border-radius: 5px; /* Partially rounded corners */
+            border-radius: 5px;
             padding: 4px 10px;
             font-size: 10px;
-            color: white; /* White text */
+            color: white;
             text-decoration: none;
             transition: all 0.3s ease;
         }
@@ -457,6 +457,65 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* LOADER STYLES */
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .loader {
+            color: #666;
+            font-size: 45px;
+            text-indent: -9999em;
+            overflow: hidden;
+            width: 1em;
+            height: 1em;
+            border-radius: 50%;
+            position: relative;
+            transform: translateZ(0);
+            animation: mltShdSpin 1.7s infinite ease, round 1.7s infinite ease;
+        }
+
+        @keyframes mltShdSpin {
+            0% {
+                box-shadow: 0 -0.83em 0 -0.4em,
+                0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+                0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+            }
+            5%,
+            95% {
+                box-shadow: 0 -0.83em 0 -0.4em, 
+                0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em, 
+                0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+            }
+            10%,
+            59% {
+                box-shadow: 0 -0.83em 0 -0.4em, 
+                -0.087em -0.825em 0 -0.42em, -0.173em -0.812em 0 -0.44em, 
+                -0.256em -0.789em 0 -0.46em, -0.297em -0.775em 0 -0.477em;
+            }
+            20% {
+                box-shadow: 0 -0.83em 0 -0.4em, -0.338em -0.758em 0 -0.42em,
+                -0.555em -0.617em 0 -0.44em, -0.671em -0.488em 0 -0.46em, 
+                -0.749em -0.34em 0 -0.477em;
+            }
+            38% {
+                box-shadow: 0 -0.83em 0 -0.4em, -0.377em -0.74em 0 -0.42em,
+                -0.645em -0.522em 0 -0.44em, -0.775em -0.297em 0 -0.46em, 
+                -0.82em -0.09em 0 -0.477em;
+            }
+            100% {
+                box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 
+                0 -0.83em 0 -0.44em, 0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+            }
+        }
+
+        @keyframes round {
+            0% { transform: rotate(0deg) }
+            100% { transform: rotate(360deg) }
+        }
     </style>
 </head>
 <body>
@@ -509,6 +568,9 @@
         <p class="trending-description" style="margin-top: 5px; color: #666;">
             Use "Refresh" to load more results, Press "More(SoundCloud)" button to fetch related results from SoundCloud source
         </p>
+        <div class="loader-container" style="display: none;">
+            <span class="loader"></span>
+        </div>
 
         <div id="search-results" style="margin-top: 20px;"></div>
 
@@ -544,6 +606,15 @@
     </footer>
 
     <script>
+        // Loader control functions
+        function showLoader() {
+            document.querySelector('.loader-container').style.display = 'flex';
+        }
+
+        function hideLoader() {
+            document.querySelector('.loader-container').style.display = 'none';
+        }
+
         const API_KEY = "AIzaSyABX6A6GWZ_4jaz9RfcGCZilWf1lJHq-zM";
         let nextPageToken = "";
         const regionCodes = ["ZA", "US", "IN", "NG", "GB", "BR", "JP"];
@@ -558,6 +629,7 @@
         }
 
         async function fetchYouTubeSearchResults(query, pageToken = "") {
+            showLoader();
             const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=${encodeURIComponent(query)}&key=${API_KEY}&pageToken=${pageToken}`;
 
             try {
@@ -656,17 +728,23 @@
                 
             } catch (error) {
                 console.error("Error fetching YouTube search results:", error);
+            } finally {
+                hideLoader();
             }
         }
 
         async function fetchMoreYouTubeResults(query) {
+            showLoader();
             if (nextPageToken) {
                 await fetchYouTubeSearchResults(query, nextPageToken);
             }
+            hideLoader();
         }
 
         async function fetchSoundCloudResults() {
+            showLoader();
             alert("SoundCloud results functionality is not implemented yet.");
+            hideLoader();
         }
 
         function formatDuration(duration) {
@@ -739,13 +817,13 @@
         }
 
         async function fetchTrendingSongs() {
+            showLoader();
             const trendingSongsContainer = document.getElementById("trending-songs");
             trendingSongsContainer.innerHTML = "";
 
-            for (const regionCode of regionCodes) {
-                const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&regionCode=${regionCode}&videoCategoryId=10&maxResults=5&key=${API_KEY}`;
-
-                try {
+            try {
+                for (const regionCode of regionCodes) {
+                    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&regionCode=${regionCode}&videoCategoryId=10&maxResults=5&key=${API_KEY}`;
                     const response = await fetch(url);
                     const data = await response.json();
 
@@ -768,9 +846,11 @@
                         songElement.appendChild(songInfo);
                         trendingSongsContainer.appendChild(songElement);
                     });
-                } catch (error) {
-                    console.error("Error fetching trending songs:", error);
                 }
+            } catch (error) {
+                console.error("Error fetching trending songs:", error);
+            } finally {
+                hideLoader();
             }
         }
 
